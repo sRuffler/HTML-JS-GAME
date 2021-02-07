@@ -1,154 +1,100 @@
-var player = {
-	x:20,
-	y:20,
-	width:20,
-	height:20,
-	speedX: 3,
-	speedY: 2,
-	color: "white"
+var player;
+
+var Keys = {
+    up: false,
+    down: false,
+    left: false,
+    right: false
 };
 
-var entity = {
-	id:0,
-	x:0,
-	y:0,
-	width:0,
-	height:0,
-	speedX: 0,
-	speedY: 0,
-	color: "white"
+var gameManager = {
+
+	canvas : document.getElementById('ctx'),
+	start : function(){
+		this.canvas.width = 500;
+		this.canvas.height = 500;
+		this.context = this.canvas.getContext('2d');
+		this.interval = setInterval(updateGame, 1000 / 60);
+	},
+	clear : function(){
+		this.context.clearRect(0,0,this.canvas.width, this.canvas.height);
+	}
+
 };
 
-var enemies = [] ;
-
-var canvas;
-var ctx;
-var width = 500;
-var height = 500;
-
-document.addEventListener('keyup', event => {
-  if (event.code === 'Space') {
-  	createEnemies();
+function entity(x,y,width,height,colour)
+{
+  this.width = width;
+  this.height = height;
+  this.x = x;
+  this.y = y;
+  this.speedX = 0;
+  this.speedY = 0;
+  this.update = function(){
+	ctx = gameManager.context;
+  	ctx.fillStyle = colour;
+  	ctx.fillRect(this.x, this.y, this.width, this.height);
   }
-});
-
-function setup(){
-	canvas = document.getElementById("ctx");
-	ctx = canvas.getContext("2d");
-    ctx.font = "16px Arial";
-    setupEventListeners();
-
-	createEnemies();
+  this.newPos = function(){
+  	this.x += this.speedX;
+  	this.y += this.speedY;
+  }
+  
 }
 
-function setupEventListeners(){
-	canvas.addEventListener("mousemove", function(e) { 
-
-	ctx.clearRect(player.x - 10, player.y - 10, player.width, player.height);  // (0,0) the top left of the canva
-
-    var cRect = canvas.getBoundingClientRect();        // Gets CSS pos, and width/height
-    var canvasX = Math.round(e.clientX - cRect.left);  // Subtract the 'left' of the canvas 
-    var canvasY = Math.round(e.clientY - cRect.top);   // from the X/Y positions to make
-
-    player.x = canvasX;  
-    player.y = canvasY;  
-
-    ctx.fillStyle = "white";
-	ctx.fillRect(player.x - 10, player.y - 10 , player.width, player.height);
-});
+function stopMove(){
+	player.speedX = 0;
+	player.speedY = 0;
 }
 
-function update(){
+function updateGame(){
+	gameManager.clear();
+	stopMove();
+	if(Keys.up){
+        player.speedY = -5;
+        console.log('sd');
+    }
 
-	// Clear the canvas
-	ctx.clearRect(0,0,canvas.width, canvas.height);
+    if(Keys.down){
+        player.speedY = 5;
+    }
 
-	// Draw player
-	ctx.fillStyle = "white";
-	ctx.fillRect(player.x - 10, player.y - 10 , player.width, player.height);
+    if(Keys.left) {
+        player.speedX = -5;
+    }
 
-	updateEntities();
-
-	drawEntities();
+    if(Keys.right){
+    	player.speedX = 5;
+    }
+        
+	player.newPos();
+	player.update();
 }
 
-function updateEntity(entity){
-
-	if (entity.x >= width - entity.width || entity.x <= 0)
-		entity.speedX  = entity.speedX * -1;
-	if (entity.y >= height - entity.height || entity.y <= 0)
-		entity.speedY = entity.speedY * -1;	
-
-	entity.x += entity.speedX;
-	entity.y += entity.speedY;
+function startGame() {
+  gameManager.start();
+  player = new entity(30, 30, 30, 30, "white");
 }
 
-function updateEntities(){
+window.addEventListener('keydown', function(e){
+     var kc = e.keyCode;
+     e.preventDefault();
 
-	//updateEntity(player);
+     if(kc === 37 || kc === 65) Keys.left = true;
+     if(kc === 38 || kc === 87) Keys.up = true;
+     if(kc === 39 || kc === 68) Keys.right = true;
+     if(kc === 40 || kc === 83) Keys.down = true;
+ });
 
-	for(var i = 0; i < enemies.length; i++){
-		if (isCollide(player, enemies[i]))
-		{
-			enemies.splice(i,1);
-			continue;
-		}	
+window.addEventListener('keyup', function(e){
+     var kc = e.keyCode;
+     e.preventDefault();
 
-		updateEntity(enemies[i]);
-	}
-}
+     if(kc === 37 || kc === 65) Keys.left = false;
+     if(kc === 38 || kc === 87) Keys.up = false;
+     if(kc === 39 || kc === 68) Keys.right = false;
+     if(kc === 40 || kc === 83) Keys.down = false;
+ });
 
-function drawEntity(entity){
-	ctx.fillStyle = entity.color;
-	ctx.fillRect(entity.x, entity.y, entity.width, entity.height);
-}
 
-function drawEntities(){
-	//drawEntity(player);
-	//drawEntity(enemy);
 
-	for(var i = 0; i < enemies.length; i++){
-		drawEntity(enemies[i]);
-	}
-}
-
-function createEnemies(){
-	for(var i = 0; i < 10; i ++){
-		enemies.push(createEnemy());
-	}
-}
-
-function createEnemy(){
-
-	return {
-	id:uuidv4(),
-	x:Math.random() * 450,
-	y:Math.random() * 450,
-	width:Math.random() * 10 + 20 ,
-	height:Math.random() * 10 + 20,
-	speedX: Math.random() * 5 + 3,
-	speedY: Math.random() * 5 + 3,
-	color: Math.random() < 0.7 ? "green" : "red"
-
-	}
-}
-
-function isCollide(a, b) {
-    return !(
-        ((a.y + a.height) < (b.y)) ||
-        (a.y > (b.y + b.height)) ||
-        ((a.x + a.width) < b.x) ||
-        (a.x > (b.x + b.width))
-    );
-}
-
-function uuidv4() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-setup();
-
-setInterval(update, 1000/60);
